@@ -2,38 +2,83 @@
 package ru.novik.neirofitnessbot.handlers;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import org.telegram.telegrambots.meta.api.objects.message.Message;
+import org.telegram.telegrambots.meta.api.objects.payments.SuccessfulPayment;
 import ru.novik.neirofitnessbot.keyboards.Keyboards;
-import ru.novik.neirofitnessbot.service.SendMessageService;
+import ru.novik.neirofitnessbot.model.Client;
+import ru.novik.neirofitnessbot.model.SubscriptionOption;
+import ru.novik.neirofitnessbot.service.ClientService;
+import ru.novik.neirofitnessbot.service.MessageService;
+
+import java.time.LocalDateTime;
+
+import static ru.novik.neirofitnessbot.utils.Commands.*;
+import static ru.novik.neirofitnessbot.utils.Constants.*;
 
 @Component
 @RequiredArgsConstructor
-@Slf4j
 public class MessageHandler implements Handler<Message> {
 
-    private final SendMessageService sendMessageService;
+    private final MessageService messageService;
+    private final ClientService clientService;
 
     @Override
     public void choose(Message message) {
         Long chatId = message.getChatId();
+        String firstName = message.getFrom().getFirstName();
+        String userName = message.getFrom().getUserName();
+        String messageText = message.getText();
         if (message.hasText()) {
-            handleCommands(chatId, message.getText());
-
+            handleCommands(chatId, messageText, firstName, userName);
+        } else if (message.hasSuccessfulPayment()) {
+            SuccessfulPayment successfulPayment = message.getSuccessfulPayment();
+            handleSuccessfulPayment(chatId, successfulPayment);
         }
     }
 
-    private void handleCommands(Long userId, String text) {
-        log.debug("Пользователь с ID = {} отправил команду:{}", userId, text);
-        switch (text) {
-            case "/start" -> {
-                log.info("Команда /start отправлена пользователем с ID = {}", userId);
-                sendMessageService.sendMessage(userId, text, Keyboards.replyKeyboard());
-            }
-            default -> log.warn("Пользователь с ID = {} отправил неизвестную команду: {}", userId, text);
+    private void handleCommands(Long chatId, String messageText, String firstName, String userName) {
+        if (START.equals(messageText)) {
+            clientService.findById(chatId).orElseGet(() -> {
+                Client client = Client.builder()
+                        .chatId(chatId)
+                        .firstName(firstName)
+                        .userName(userName)
+                        .subscription(SubscriptionOption.DEMO)
+                        .build();
+                return clientService.saveClient(client);
+            });
+            messageService.sendMessage(chatId, START_MESSAGE, Keyboards.startKeyboard());
+        } else if (DEMO.equals(messageText)) {
+            handleDemo(chatId);
+        } else if (SUBSCRIBE.equals(messageText)) {
+            handleSubscribe(chatId);
+        } else {
+            messageService.sendMessage(chatId, INCORRECT_INPUT, Keyboards.startKeyboard());
         }
+    }
+
+    private void handleSuccessfulPayment(Long chatId, SuccessfulPayment successfulPayment) {
+        clientService.findById(chatId).ifPresent(client -> {
+            client.setStartDate(LocalDateTime.now());
+            if (SubscriptionOption.ONE_MONTH.equals(client.getSubscription())) {
+                client.setEndDate(LocalDateTime.now().plusMonths(1));
+            } else if (SubscriptionOption.THREE_MONTH.equals(client.getSubscription())) {
+                client.setEndDate(LocalDateTime.now().plusMonths(3));
+            }
+            client.setSubscribed(true);
+            clientService.saveClient(client);
+        });
+        messageService.servePayment(chatId, successfulPayment);
+    }
+
+    private void handleDemo(Long chatId) {
+        messageService.sendVideo(chatId);
+    }
+
+    private void handleSubscribe(Long chatId) {
+        messageService.sendSubscribe(chatId);
     }
 }
 

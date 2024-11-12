@@ -1,6 +1,5 @@
 package ru.novik.neirofitnessbot;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import org.telegram.telegrambots.longpolling.interfaces.LongPollingUpdateConsumer;
@@ -11,12 +10,10 @@ import ru.novik.neirofitnessbot.config.BotConfiguration;
 import ru.novik.neirofitnessbot.processors.Processor;
 
 @Component
-@Slf4j
 public class NeiroFitnessBot implements SpringLongPollingBot, LongPollingSingleThreadUpdateConsumer {
 
     private final BotConfiguration botConfiguration;
     private final Processor processor;
-
 
     public NeiroFitnessBot(BotConfiguration botConfiguration, Processor processor) {
         this.botConfiguration = botConfiguration;
