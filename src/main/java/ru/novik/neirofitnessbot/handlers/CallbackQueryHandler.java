@@ -3,11 +3,14 @@ package ru.novik.neirofitnessbot.handlers;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
+import ru.novik.neirofitnessbot.keyboards.Keyboards;
 import ru.novik.neirofitnessbot.model.Client;
 import ru.novik.neirofitnessbot.model.SubscriptionOption;
 import ru.novik.neirofitnessbot.service.*;
+import java.time.format.DateTimeFormatter;
 
 import static ru.novik.neirofitnessbot.utils.Commands.*;
+import static ru.novik.neirofitnessbot.utils.Constants.SUBSCRIBED;
 
 @Component
 @AllArgsConstructor
@@ -33,8 +36,17 @@ public class CallbackQueryHandler implements Handler<CallbackQuery> {
     }
 
     private void handleSubscribe(Long chatId) {
-        messageService.sendSubscribe(chatId);
+        Client client = clientService.findById(chatId).orElseThrow(() ->
+                new RuntimeException("Client not found"));
+        if (client.isSubscribed()) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm");
+            String subscriptionEndDate = client.getEndDate().format(formatter);
+            messageService.sendMessage(chatId, SUBSCRIBED + subscriptionEndDate, Keyboards.startKeyboard());
+        } else {
+            messageService.sendSubscribe(chatId);
+        }
     }
+
 
     private void handlePayCallBack(Long chatId, String paymentType) {
         Client client = clientService.findById(chatId).orElseThrow(() ->

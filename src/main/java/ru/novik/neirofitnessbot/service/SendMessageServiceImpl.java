@@ -12,6 +12,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
+import ru.novik.neirofitnessbot.error.SendMessageException;
 
 @Service
 @Slf4j
@@ -26,7 +27,7 @@ public class SendMessageServiceImpl implements SendMessageService {
             log.info("Received message {} from chat id: {}", sendMessage.getText(), sendMessage.getChatId());
             return telegramClient.execute(sendMessage).getMessageId();
         } catch (TelegramApiException e) {
-            throw new RuntimeException("An error occurred while sending the message", e);
+            throw new SendMessageException(String.format("An error occurred while sending the message %s", sendMessage.getText()));
         }
     }
 

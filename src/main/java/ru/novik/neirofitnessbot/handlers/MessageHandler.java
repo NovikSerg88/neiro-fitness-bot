@@ -13,6 +13,7 @@ import ru.novik.neirofitnessbot.service.ClientService;
 import ru.novik.neirofitnessbot.service.MessageService;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import static ru.novik.neirofitnessbot.utils.Commands.*;
 import static ru.novik.neirofitnessbot.utils.Constants.*;
@@ -78,7 +79,15 @@ public class MessageHandler implements Handler<Message> {
     }
 
     private void handleSubscribe(Long chatId) {
-        messageService.sendSubscribe(chatId);
+        Client client = clientService.findById(chatId).orElseThrow(() ->
+                new RuntimeException("Client not found"));
+        if (client.isSubscribed()) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm");
+            String subscriptionEndDate = client.getEndDate().format(formatter);
+            messageService.sendMessage(chatId, SUBSCRIBED + subscriptionEndDate, Keyboards.startKeyboard());
+        } else {
+            messageService.sendSubscribe(chatId);
+        }
     }
 }
 
