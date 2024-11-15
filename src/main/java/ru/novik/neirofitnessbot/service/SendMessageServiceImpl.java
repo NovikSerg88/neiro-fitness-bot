@@ -37,7 +37,7 @@ public class SendMessageServiceImpl implements SendMessageService {
             log.info("Received invoice message from chat id: {}", sendInvoice.getChatId());
             return telegramClient.execute(sendInvoice).getMessageId();
         } catch (TelegramApiException e) {
-            throw new RuntimeException("An error occurred while sending the message", e);
+            throw new SendMessageException(String.format("An error occurred while sending invoice from chat id = %s", sendInvoice.getChatId()));
         }
     }
 
@@ -47,7 +47,7 @@ public class SendMessageServiceImpl implements SendMessageService {
             log.info("Received media message from chat id: {}", sendVideo.getChatId());
             telegramClient.execute(sendVideo);
         } catch (TelegramApiException e) {
-            throw new RuntimeException("An error occurred while sending the message", e);
+            throw new SendMessageException(String.format("An error occurred while sending video to chat id = %s", sendVideo.getChatId()));
         }
     }
 
@@ -58,7 +58,7 @@ public class SendMessageServiceImpl implements SendMessageService {
             telegramClient.execute(answerPreCheckoutQuery);
         } catch (TelegramApiException e) {
             log.error("AnswerPreCheckoutQuery error : {}", answerPreCheckoutQuery.getErrorMessage());
-            throw new RuntimeException("An error occurred while sending the message", e);
+            throw new SendMessageException(String.format("An error occurred while sending answerPreCheckoutQuery %s", answerPreCheckoutQuery.getPreCheckoutQueryId()));
         }
     }
 
@@ -68,7 +68,7 @@ public class SendMessageServiceImpl implements SendMessageService {
             log.info("Received delete message from chat id: {}", deleteMessage.getChatId());
             telegramClient.execute(deleteMessage);
         } catch (TelegramApiException e) {
-            throw new RuntimeException("An error occurred while deleting the message", e);
+            throw new SendMessageException(String.format("An error occurred while deleting message from chat id = %s", deleteMessage.getChatId()));
         }
     }
 
@@ -78,7 +78,7 @@ public class SendMessageServiceImpl implements SendMessageService {
             log.info("Received invite link to channel with id: {}", exportInviteLink.getChatId());
             return telegramClient.execute(exportInviteLink);
         } catch (TelegramApiException e) {
-            throw new RuntimeException("An error occurred while sending the message", e);
+            throw new SendMessageException(String.format("An error occurred while sending invite link to chat id = %s", exportInviteLink.getChatId()));
         }
     }
 
@@ -88,7 +88,7 @@ public class SendMessageServiceImpl implements SendMessageService {
         try {
             telegramClient.execute(unbanChatMember);
         } catch (TelegramApiException e) {
-            throw new RuntimeException("An error occurred while sending the message", e);
+            throw new SendMessageException(String.format("An error occurred while sending unban message to chat id = %s", unbanChatMember.getChatId()));
         }
     }
 }

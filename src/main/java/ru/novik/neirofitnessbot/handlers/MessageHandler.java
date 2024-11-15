@@ -6,14 +6,15 @@ import org.springframework.stereotype.Component;
 
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.payments.SuccessfulPayment;
+import ru.novik.neirofitnessbot.error.NotFoundException;
 import ru.novik.neirofitnessbot.keyboards.Keyboards;
 import ru.novik.neirofitnessbot.model.Client;
 import ru.novik.neirofitnessbot.model.SubscriptionOption;
 import ru.novik.neirofitnessbot.service.ClientService;
 import ru.novik.neirofitnessbot.service.MessageService;
+import ru.novik.neirofitnessbot.utils.DateUtils;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 import static ru.novik.neirofitnessbot.utils.Commands.*;
 import static ru.novik.neirofitnessbot.utils.Constants.*;
@@ -31,6 +32,7 @@ public class MessageHandler implements Handler<Message> {
         String firstName = message.getFrom().getFirstName();
         String userName = message.getFrom().getUserName();
         String messageText = message.getText();
+
         if (message.hasText()) {
             handleCommands(chatId, messageText, firstName, userName);
         } else if (message.hasSuccessfulPayment()) {
@@ -80,10 +82,9 @@ public class MessageHandler implements Handler<Message> {
 
     private void handleSubscribe(Long chatId) {
         Client client = clientService.findById(chatId).orElseThrow(() ->
-                new RuntimeException("Client not found"));
+                new NotFoundException(String.format("Client with id %s not found", chatId)));
         if (client.isSubscribed()) {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm");
-            String subscriptionEndDate = client.getEndDate().format(formatter);
+            String subscriptionEndDate = DateUtils.formatDate(client.getEndDate());
             messageService.sendMessage(chatId, SUBSCRIBED + subscriptionEndDate, Keyboards.startKeyboard());
         } else {
             messageService.sendSubscribe(chatId);
