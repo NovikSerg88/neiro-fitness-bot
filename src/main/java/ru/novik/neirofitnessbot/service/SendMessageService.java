@@ -24,4 +24,6 @@ public interface SendMessageService {
 
     void grantAccessToChannel(UnbanChatMember unbanChatMember);
 
+    void removeUserFromChannel(Long chatId);
+
 }

@@ -2,8 +2,10 @@ package ru.novik.neirofitnessbot.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.AnswerPreCheckoutQuery;
+import org.telegram.telegrambots.meta.api.methods.groupadministration.BanChatMember;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.ExportChatInviteLink;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.UnbanChatMember;
 import org.telegram.telegrambots.meta.api.methods.invoices.SendInvoice;
@@ -13,6 +15,7 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 import ru.novik.neirofitnessbot.error.SendMessageException;
+import ru.novik.neirofitnessbot.error.SubscriptionCheckException;
 
 @Service
 @Slf4j
@@ -21,12 +24,16 @@ public class SendMessageServiceImpl implements SendMessageService {
 
     private final TelegramClient telegramClient;
 
+    @Value("${telegram.private_channel_id}")
+    private String privateChannelId;
+
     @Override
     public Integer sendMessage(SendMessage sendMessage) {
         try {
             log.info("Received message {} from chat id: {}", sendMessage.getText(), sendMessage.getChatId());
             return telegramClient.execute(sendMessage).getMessageId();
         } catch (TelegramApiException e) {
+            log.error("Failed to send message to chat {}. Error: {}", sendMessage.getChatId(), e.getMessage(), e);
             throw new SendMessageException(String.format("An error occurred while sending the message %s", sendMessage.getText()));
         }
     }
@@ -89,6 +96,18 @@ public class SendMessageServiceImpl implements SendMessageService {
             telegramClient.execute(unbanChatMember);
         } catch (TelegramApiException e) {
             throw new SendMessageException(String.format("An error occurred while sending unban message to chat id = %s", unbanChatMember.getChatId()));
+        }
+    }
+
+    @Override
+    public void removeUserFromChannel(Long chatId) {
+        log.debug("Attempting to ban chat member with id {}", chatId);
+        try {
+            BanChatMember banChatMember = new BanChatMember(privateChannelId, chatId);
+            telegramClient.execute(banChatMember);
+            log.info("Successfully banned chat member with id {}", chatId);
+        } catch (TelegramApiException e) {
+            throw new SubscriptionCheckException("Failed to ban chat member with id " + chatId, e);
         }
     }
 }
